@@ -190,7 +190,7 @@ def _plot_image(*image_evals):
     )
 
 
-def _faulty_images_idx(result, utility_loss_ratio=0.8):
+def _faulty_images_idx(result, utility_loss_ratio=0.7):
     utility = _utility(result)
     utility_lost = 1 - utility
     sorted_utility_loss = np.sort(utility_lost)[::-1]
