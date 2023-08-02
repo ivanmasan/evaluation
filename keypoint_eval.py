@@ -132,9 +132,9 @@ def _pick_probability(distance):
     return 0.98 * variable_part
 
 
-def _visualize_two_models(main_results, secondary_results, model_names):
+def _visualize_two_models(main_results, secondary_results, model_names, utility_threshold):
     _plot_graphs(main_results, secondary_results, model_names=model_names)
-    _plot_faulty_images(main_results, secondary_results)
+    _plot_faulty_images(main_results, secondary_results, utility_threshold=utility_threshold)
 
     Logger.current_logger().report_single_value("Model Utility",
                                                 _utility(main_results).mean())
@@ -142,9 +142,9 @@ def _visualize_two_models(main_results, secondary_results, model_names):
                                                 _utility(secondary_results).mean())
 
 
-def _visualize_single_results(main_results, model_name):
+def _visualize_single_results(main_results, model_name, utility_threshold):
     _plot_graphs(main_results, model_names=[model_name])
-    _plot_faulty_images(main_results)
+    _plot_faulty_images(main_results, utility_threshold=utility_threshold)
 
     Logger.current_logger().report_single_value("Model Utility", _utility(main_results).mean())
 
@@ -190,22 +190,15 @@ def _plot_image(*image_evals):
     )
 
 
-def _faulty_images_idx(result, utility_loss_ratio=0.7):
+def _faulty_images_idx(result, utility_threshold=0.7):
     utility = _utility(result)
-    utility_lost = 1 - utility
-    sorted_utility_loss = np.sort(utility_lost)[::-1]
-    idx = np.searchsorted(np.cumsum(sorted_utility_loss),
-                          utility_lost.sum() * utility_loss_ratio)
-    idx = np.minimum(idx, len(sorted_utility_loss) - 1)
-    threshold = sorted_utility_loss[idx]
-
-    return np.where(utility_lost >= threshold)[0]
+    return np.where(utility < utility_threshold)[0]
 
 
-def _plot_faulty_images(*results):
+def _plot_faulty_images(*results, utility_threshold):
     images_to_plot = set()
     for result in results:
-        images_to_plot |= set(_faulty_images_idx(result))
+        images_to_plot |= set(_faulty_images_idx(result, utility_threshold))
 
     for idx in images_to_plot:
         _plot_image(*[r[idx] for r in results])
@@ -222,13 +215,17 @@ def _plot_faulty_images(*results):
               help='Name of model. Used for graph labeling')
 @click.option('--secondary-model-name', default='Secondary Model',
               help='Name of secondary model. Used for graph labeling')
+@click.option('--utility-threshold', default=0.7,
+              help='Images with utility lower than this value will '
+                   'be displayed as bad images')
 def main(
         model_path,
         secondary_model_path,
         roi_model_path,
         dataset_path,
         model_name,
-        secondary_model_name
+        secondary_model_name,
+        utility_threshold
 ):
     if Task.current_task() is None:
         Task.init(project_name='clustering/test')
@@ -249,9 +246,10 @@ def main(
         secondary_results = _produce_results(secondary_pipeline, files)
         del secondary_pipeline
 
-        _visualize_two_models(main_results, secondary_results, [model_name, secondary_model_name])
+        _visualize_two_models(main_results, secondary_results,
+                              [model_name, secondary_model_name], utility_threshold)
     else:
-        _visualize_single_results(main_results, model_name)
+        _visualize_single_results(main_results, model_name, utility_threshold)
 
 
 if __name__ == "__main__":
