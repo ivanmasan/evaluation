@@ -40,6 +40,7 @@ def _resolve_model_file_path(path):
         raise ValueError("path to model needs to e a directory or end with `.pth`. "
                          f"Received {path}")
 
+
 def _create_pipeline(model_path, roi_model_path):
     model_dir, model_name = _resolve_model_file_path(model_path)
     roi_model_dir, roi_model_name = _resolve_model_file_path(roi_model_path)
@@ -189,12 +190,13 @@ def _plot_image(*image_evals):
     )
 
 
-def _faulty_images_idx(result, utility_loss_ratio=1):
+def _faulty_images_idx(result, utility_loss_ratio=0.8):
     utility = _utility(result)
     utility_lost = 1 - utility
     sorted_utility_loss = np.sort(utility_lost)[::-1]
     idx = np.searchsorted(np.cumsum(sorted_utility_loss),
                           utility_lost.sum() * utility_loss_ratio)
+    idx = np.minimum(idx, len(sorted_utility_loss) - 1)
     threshold = sorted_utility_loss[idx]
 
     return np.where(utility_lost >= threshold)[0]
