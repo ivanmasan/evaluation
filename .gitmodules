@@ -1,0 +1,3 @@
+[submodule "ML_framework"]
+	path = ML_framework
+	url = git@github.com:photoneo/ML_framework.git
