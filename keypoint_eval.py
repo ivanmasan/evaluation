@@ -31,20 +31,32 @@ class ImageEval:
         self.utility = _calculate_utility(self.distance)
 
 
+def _resolve_model_file_path(path):
+    if path.suffix == '':
+        return path, 'model.pth'
+    elif path.suffix == '.pth':
+        return path.parent, path.parts[-1]
+    else:
+        raise ValueError("path to model needs to e a directory or end with `.pth`. "
+                         f"Received {path}")
+
 def _create_pipeline(model_path, roi_model_path):
+    model_dir, model_name = _resolve_model_file_path(model_path)
+    roi_model_dir, roi_model_name = _resolve_model_file_path(roi_model_path)
+
     config = AnyPickPipelineConfig()
 
     config.predictions.action = PredictionsActions.detectron2
     config.predictions.detectron2.crop_policy = CropPolicy.default
-    config.predictions.detectron2.config = str(model_path / 'config.yaml')
-    config.predictions.detectron2.weights = str(model_path / 'model.pth')
-    train_config: TrainConfig = OmegaConf.load(model_path / 'train_config.yaml')
+    config.predictions.detectron2.config = str(model_dir / 'config.yaml')
+    config.predictions.detectron2.weights = str(model_dir / model_name)
+    train_config: TrainConfig = OmegaConf.load(model_dir / 'train_config.yaml')
     config.predictions.detectron2.dataset_mapper_config = train_config.dataset_mapper
 
     config.roi_2d.action = ROI2DActions.detectron2
     config.roi_2d.detectron2.crop_policy = CropPolicy.none
-    config.roi_2d.detectron2.config = str(roi_model_path / 'config.yaml')
-    config.roi_2d.detectron2.weights = str(roi_model_path / 'model.pth')
+    config.roi_2d.detectron2.config = str(roi_model_dir / 'config.yaml')
+    config.roi_2d.detectron2.weights = str(roi_model_dir / roi_model_name)
 
     return AnyPickPipeline(config)
 
