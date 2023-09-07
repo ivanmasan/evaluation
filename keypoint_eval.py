@@ -101,6 +101,10 @@ def _produce_results(pipeline, files):
 
         with open(annotations_path, 'r') as f:
             annotations = json.load(f)
+
+        if not annotations['annotations']:
+            continue
+
         true_keypoints = _extract_keypoints(annotations)
 
         predictions = _predict_image(pipeline, image)
